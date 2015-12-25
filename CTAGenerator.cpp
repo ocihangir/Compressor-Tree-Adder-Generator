@@ -2,6 +2,8 @@
 #include <vector>
 #include <math.h>
 
+using namespace std;
+
 struct GPC // Generalized Parallel Counter
 {   int a;
     int b;
@@ -29,36 +31,49 @@ struct GPC // Generalized Parallel Counter
             
             return *this;
         }
-    };
+};
 
-using namespace std;
+struct DOT
+{
+    int rank;
+};
 
-const int multSize = 12;
+struct LogicSet
+{
+    vector<DOT> dots;
+};
+
+struct LAYER
+{
+    vector<LogicSet> lSets;
+};
+
+
+
+const int multA = 12;
+const int multB = 12;
 
 const int M = 6;
 const int N = 4;
 const int k = 3;
 
-vector<int> partialProducts;
+
 void printList(vector<int> &prList);
-vector<int> generatePartialProducts(int);
+LAYER generatePartialProducts(int,int);
 int findTallestColumn(vector<int> &colList);
 vector<int> generateLayer(vector<int> &input);
 vector<GPC> generateCoveringGPCs(int M, int N);
 vector<GPC> generatePrimitiveGPCs(vector<GPC> &covGPCs);
 void printGPCs(vector<GPC> &gpcList);
 void sortGPCs(vector<GPC> &listGPC);
+void printLayers(vector<LAYER> &layerList);
 
 vector<GPC> gpcList;
+vector<LAYER> layers;
 
 int main( int argc, char *argv[] )
 {
-    partialProducts = generatePartialProducts(multSize);
-        
-    printList(partialProducts);
-    
-    generateLayer(partialProducts);
-    
+    // *** GPC creation
     vector<GPC> covGPCs = generateCoveringGPCs(M, N);
     
     cout << "Covering GPC List : " << endl;
@@ -68,6 +83,20 @@ int main( int argc, char *argv[] )
     
     cout << "Primitive GPC List : " << endl;
     printGPCs(primGPCs);
+    // ***
+    
+    
+    // Generate partial products as Layer0
+    LAYER partialProducts = generatePartialProducts(multA,multB);
+    layers.push_back(partialProducts);
+    
+    printLayers(layers);
+        
+    // printList(partialProducts);
+    
+    // generateLayer(partialProducts);
+    
+    
     
 }
 
@@ -157,14 +186,33 @@ void sortGPCs(vector<GPC> &listGPC)
 }
 
 // Generates partial products
-vector<int> generatePartialProducts(int size)
+LAYER generatePartialProducts(int A, int B)
 {
     vector<int> pp;
     
-    for (int i=1; i<size*2; i++)
-        pp.push_back(i-((floor(i / size) * (i % size) * 2)));
+    
+    vector<LogicSet> lSets;
+    
+    for (int i=0; i<A; i++)
+    {
+        vector<DOT> dots;
         
-    return pp;
+        for (int j=0; j<B; j++)
+        {
+            DOT dot;
+            dot.rank = i+j;
+            dots.push_back(dot);
+        }
+            
+        LogicSet lSet;
+        lSet.dots = dots;
+        lSets.push_back(lSet);
+    }
+    
+    LAYER resLayer;
+    resLayer.lSets = lSets;
+    
+    return resLayer;
 }
 
 vector<int> generateLayer(vector<int> &input)
@@ -192,6 +240,23 @@ int findTallestColumn(vector<int> &colList)
     }
     
     return tallestIndex;
+}
+
+void printLayers(vector<LAYER> &layerList)
+{
+    cout << endl;
+    
+    for (vector<LAYER>::iterator it=layerList.begin();it!=layerList.end(); ++it)
+    {
+        cout << "LAYER - " << endl;
+        for (vector<LogicSet>::iterator ls=(*it).lSets.begin();ls!=(*it).lSets.end(); ++ls)
+        {
+            for (vector<DOT>::iterator dot=(*ls).dots.begin();dot!=(*ls).dots.end(); ++dot)
+                cout << (*dot).rank << " ";
+            cout << endl;
+        }
+     }   
+    cout << endl;
 }
 
 // Prints layer
