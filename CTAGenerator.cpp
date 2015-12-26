@@ -3,6 +3,7 @@
 #include <math.h>
 #include <string>
 #include <sstream>
+#include <stdint.h>
 // A patch for to_string issue on g++
 namespace patch
 {
@@ -15,6 +16,7 @@ namespace patch
 }
 
 #include <iostream>
+#include <fstream>
 
 using namespace std;
 
@@ -102,6 +104,7 @@ bool testPattern(vector<int> &rankList, GPC targetGPC, int targetRank);
 void generateLUT(LAYER &input, vector<int> &rankList, GPC targetGPC, int selectedRank, LAYER &genLayer, int layerNumber, int lutNumber);
 void connectDotsDirectly(LAYER &input, vector<int> &rankList, int selectedRank, LAYER &genLayer);
 vector<int> generateRankList(LAYER input);
+uint64_t generateLUTOutput(int a, int b, int c, int q);
 
 vector<GPC> gpcList;
 vector<LAYER> layers;
@@ -149,7 +152,67 @@ vector<GPC> generateGPCs(int M, int N)
                 primGPCs.erase(primGPCs.begin() + j);
     }
     
+    std::ostringstream gpc_modules;
+    gpc_modules << "// GPC modules for LUT6 " << endl << endl;
+    for (vector<GPC>::iterator it=primGPCs.begin();it!=primGPCs.end(); ++it)
+    {
+        gpc_modules << "// GPC(" << (*it).a << "," << (*it).b << "," << (*it).c << "," << (*it).x << ")" << " compression ratio : " << (*it).ratio << endl;
+        gpc_modules << "module gpc" << (*it).a << (*it).b << (*it).c << "(in, out);" << endl << endl;
+        gpc_modules << "input [" << patch::to_string((*it).a + (*it).b + (*it).c - 1) << ":0] in;" << endl;
+        gpc_modules << "output [" << patch::to_string((*it).x-1) << ":0] out;" << endl << endl;
+        if ((covGPCs[(*it).coveringGPC].a == (*it).a) &&
+            (covGPCs[(*it).coveringGPC].b == (*it).b) &&
+            (covGPCs[(*it).coveringGPC].c == (*it).c) &&
+            (covGPCs[(*it).coveringGPC].x == (*it).x))
+        { // It is covering GPC
+            
+            for (int i=0; i<(*it).x; i++)
+            {
+                gpc_modules << "(* RLOC = \"X0Y0\" *)" << endl;
+                gpc_modules << "LUT6 #(.INIT(64'h" << hex << generateLUTOutput((*it).a, (*it).b, (*it).c, i) << dec << "))" << endl;
+                gpc_modules << "    LUT6_" << i << " (.O(out[" << i << "], .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(in[5]));" << endl << endl;
+            }
+        } else { // It is generated GPC
+            // gpc_modules << "gpc" << covGPCs[(*it).coveringGPC].a << covGPCs[(*it).coveringGPC].b << covGPCs[(*it).coveringGPC].c << " gpc" << covGPCs[(*it).coveringGPC].a << covGPCs[(*it).coveringGPC].b << covGPCs[(*it).coveringGPC].c << "_inst(.in({" <<  << "}), .out(out));" << endl;
+        }
+        gpc_modules << "endmodule" << endl << endl;
+    }
+    
+    cout << gpc_modules.str() << endl;
+    
     return primGPCs;
+}
+
+uint64_t generateLUTOutput(int a, int b, int c, int q)
+{
+    unsigned long long int res = 0;
+    
+    for (int i=0; i<64; i++)
+    {
+        int val=i;
+        int bit_val=0;
+        int aVal = a;
+        int bVal = b;
+        int cVal = c;
+        while(cVal-->0)
+        {
+            bit_val += (val % 2) * 1;
+            val = (val>>1);
+        }
+        while(bVal-->0)
+        {
+            bit_val += (val % 2) * 2;
+            val = (val>>1);
+        }
+        while(aVal-->0)
+        {
+            bit_val += (val % 2) * 4;
+            val = (val>>1);
+        }
+        res += static_cast<uint64_t>(static_cast<uint64_t>((bit_val >> q) % 2) << i);
+    }
+    
+    return res;
 }
 
 vector<GPC> generateCoveringGPCs(int M, int N)
@@ -353,9 +416,9 @@ void connectDotsDirectly(LAYER &input, vector<int> &rankList, int selectedRank, 
 
 void generateLUT(LAYER &input, vector<int> &rankList, GPC targetGPC, int selectedRank, LAYER &genLayer, int layerNumber, int lutNumber)
 {
-    cout << "(* RLOC = " << "\"X" << layerNumber << "Y" << lutNumber << "\" *)" << endl;
+    /*cout << "(* RLOC = " << "\"X" << layerNumber << "Y" << lutNumber << "\" *)" << endl;
     cout << "gpc" << targetGPC.a << targetGPC.b << targetGPC.c;
-    cout << " gpcL" << layerNumber << "_" << lutNumber << " ({";
+    cout << " gpcL" << layerNumber << "_" << lutNumber << " ({";*/
     
     for (int rankIndex = 2; rankIndex>=0; rankIndex--)
     {
@@ -373,8 +436,8 @@ void generateLUT(LAYER &input, vector<int> &rankList, GPC targetGPC, int selecte
                 {
                     if (input.lSets[ls].dots[dot].rank == selectedRank+rankIndex)
                     {
-                        cout << input.lSets[ls].dots[dot].name;
-                        cout << ",";
+                        // cout << input.lSets[ls].dots[dot].name;
+                        // cout << ",";
                         input.lSets[ls].dots.erase(input.lSets[ls].dots.begin() + dot);
                         rankList[selectedRank+rankIndex]--;
                         numberOfDots2Connect--;
@@ -388,7 +451,7 @@ void generateLUT(LAYER &input, vector<int> &rankList, GPC targetGPC, int selecte
             }
         }
     }
-    cout << "},gpcOutL" << patch::to_string(layerNumber) << "_" << patch::to_string(lutNumber) << ");" << endl;
+    // cout << "},gpcOutL" << patch::to_string(layerNumber) << "_" << patch::to_string(lutNumber) << ");" << endl;
     
     LogicSet lSet;
     for (int i=0; i<targetGPC.x; i++)
