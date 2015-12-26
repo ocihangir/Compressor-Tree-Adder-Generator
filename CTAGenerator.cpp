@@ -1,6 +1,20 @@
 #include <iostream>
 #include <vector>
 #include <math.h>
+#include <string>
+#include <sstream>
+// A patch for to_string issue on g++
+namespace patch
+{
+    template < typename T > std::string to_string( const T& n )
+    {
+        std::ostringstream stm ;
+        stm << n ;
+        return stm.str() ;
+    }
+}
+
+#include <iostream>
 
 using namespace std;
 
@@ -33,9 +47,12 @@ struct GPC // Generalized Parallel Counter
         }
 };
 
+
+
 struct DOT
 {
     int rank;
+    string name;
 };
 
 struct LogicSet
@@ -48,7 +65,12 @@ struct LAYER
     vector<LogicSet> lSets;
 };
 
-
+struct LUT
+{
+    vector<DOT> inputDots;
+    vector<DOT> outputDots;
+    int typeGPC;
+};
 
 const int multA = 12;
 const int multB = 12;
@@ -58,15 +80,19 @@ const int N = 4;
 const int k = 3;
 
 
-void printList(vector<int> &prList);
+void printList(vector<int> prList);
 LAYER generatePartialProducts(int,int);
-int findTallestColumn(vector<int> &colList);
-vector<int> generateLayer(vector<int> &input);
+int findTallestColumn(vector<int> colList);
+LAYER compressLayer(LAYER input, int layerNumber);
 vector<GPC> generateCoveringGPCs(int M, int N);
 vector<GPC> generatePrimitiveGPCs(vector<GPC> &covGPCs);
 void printGPCs(vector<GPC> &gpcList);
 void sortGPCs(vector<GPC> &listGPC);
 void printLayers(vector<LAYER> &layerList);
+bool testPattern(vector<int> &rankList, GPC targetGPC, int targetRank);
+void generateLUT(LAYER &input, vector<int> &rankList, GPC targetGPC, int selectedRank, LAYER &genLayer, int layerNumber, int lutNumber);
+void connectDotsDirectly(LAYER &input, vector<int> &rankList, int selectedRank, LAYER &genLayer);
+vector<int> generateRankList(LAYER input);
 
 vector<GPC> gpcList;
 vector<LAYER> layers;
@@ -83,6 +109,8 @@ int main( int argc, char *argv[] )
     
     cout << "Primitive GPC List : " << endl;
     printGPCs(primGPCs);
+    
+    gpcList=primGPCs;
     // ***
     
     
@@ -90,13 +118,22 @@ int main( int argc, char *argv[] )
     LAYER partialProducts = generatePartialProducts(multA,multB);
     layers.push_back(partialProducts);
     
-    printLayers(layers);
+    // printLayers(layers);
         
     // printList(partialProducts);
     
     // generateLayer(partialProducts);
     
+    // vector<int> rankList = generateRankList(layers.back());
+    int layerNumber = 1;
+    while(findTallestColumn(generateRankList(layers.back()))>2)
+    {
+        LAYER res = compressLayer(layers.back(), layerNumber++);
+        layers.push_back(res);
+    }
+    printLayers(layers);
     
+    printList(generateRankList(layers.back()));
     
 }
 
@@ -201,6 +238,7 @@ LAYER generatePartialProducts(int A, int B)
         {
             DOT dot;
             dot.rank = i+j;
+            dot.name = "pp" + patch::to_string(i) + "[" + patch::to_string(j) + "]";
             dots.push_back(dot);
         }
             
@@ -215,18 +253,171 @@ LAYER generatePartialProducts(int A, int B)
     return resLayer;
 }
 
-vector<int> generateLayer(vector<int> &input)
+vector<int> generateRankList(LAYER input)
 {
-    vector<int> genLayer(input.size() + N);
+    vector<int> rankList;
+    for (vector<LogicSet>::iterator it=input.lSets.begin();it!=input.lSets.end(); ++it)
+        for (vector<DOT>::iterator dot=(*it).dots.begin();dot!=(*it).dots.end(); ++dot)
+        {
+            while (rankList.size() < (*dot).rank + 1)
+                rankList.push_back(0);
+            rankList[(*dot).rank]++;
+        }
+        return rankList;
+}
+
+LAYER compressLayer(LAYER input, int layerNumber)
+{
+    LAYER genLayer;
+    vector<int> rankList = generateRankList(input);
     
-    int tallest = findTallestColumn(input);
+    int lutNumber = 0;
     
-    cout << "Tallest column : " << tallest << endl;
+    int bestGPC = gpcList.size();
+    int selectedRank = rankList.size();
+    do
+    {
+        bestGPC = gpcList.size();
+        int tallest = findTallestColumn(rankList);
+        for (int i=0;i<3;i++)
+        {
+            for(int gpcIndex=0;gpcIndex<gpcList.size();gpcIndex++)
+            {
+                
+                if (tallest - i >= 0)
+                {
+                    
+                    if (testPattern(rankList, gpcList[gpcIndex], tallest-i))
+                    {
+                        if (gpcIndex<bestGPC)
+                        {
+                            bestGPC = gpcIndex;
+                            selectedRank = tallest-i;
+                            break;
+                        }
+                    }
+                } else
+                    break;
+            }
+        }
+        if (bestGPC < gpcList.size())
+        {
+            generateLUT(input, rankList, gpcList[bestGPC], selectedRank, genLayer, layerNumber, lutNumber);
+            
+            lutNumber++;
+        }
+         else
+            connectDotsDirectly(input, rankList, tallest, genLayer);
+    }while(rankList[findTallestColumn(rankList)]>0);
     
     return genLayer;
 }
 
-int findTallestColumn(vector<int> &colList)
+void connectDotsDirectly(LAYER &input, vector<int> &rankList, int selectedRank, LAYER &genLayer)
+{
+            for (int ls=0;ls<input.lSets.size(); ++ls)
+            {
+                for (int dot=0; dot<input.lSets[ls].dots.size(); ++dot)
+                {
+                    if (input.lSets[ls].dots[dot].rank == selectedRank)
+                    {
+                        DOT tmp_dot;
+                        LogicSet lSet;
+                        tmp_dot.rank = selectedRank;
+                        tmp_dot.name = input.lSets[ls].dots[dot].name;
+                        lSet.dots.push_back(tmp_dot);
+                        genLayer.lSets.push_back(lSet);
+                        input.lSets[ls].dots.erase(input.lSets[ls].dots.begin() + dot);
+                        rankList[selectedRank]--;
+                        break;
+                    }
+                }
+                
+            }
+}
+
+void generateLUT(LAYER &input, vector<int> &rankList, GPC targetGPC, int selectedRank, LAYER &genLayer, int layerNumber, int lutNumber)
+{
+    cout << "(* RLOC = " << "\"X" << layerNumber << "Y" << lutNumber << "\" *)" << endl;
+    cout << "gpc" << targetGPC.a << targetGPC.b << targetGPC.c;
+    cout << " gpcL" << layerNumber << "_" << lutNumber << " ({";
+    
+    for (int rankIndex = 2; rankIndex>=0; rankIndex--)
+    {
+        int numberOfDots2Connect = targetGPC.a;
+        if (rankIndex == 1)
+            numberOfDots2Connect = targetGPC.b;
+        else if (rankIndex == 0)
+            numberOfDots2Connect = targetGPC.c;
+
+        while(numberOfDots2Connect>0)
+        {
+            for (int ls=0;ls<input.lSets.size(); ++ls)
+            {
+                for (int dot=0; dot<input.lSets[ls].dots.size(); ++dot)
+                {
+                    if (input.lSets[ls].dots[dot].rank == selectedRank+rankIndex)
+                    {
+                        cout << input.lSets[ls].dots[dot].name;
+                        cout << ",";
+                        input.lSets[ls].dots.erase(input.lSets[ls].dots.begin() + dot);
+                        rankList[selectedRank+rankIndex]--;
+                        numberOfDots2Connect--;
+                        break;
+                    }
+                }
+                
+                if (numberOfDots2Connect==0)
+                    break;
+                
+            }
+        }
+    }
+    cout << "},gpcOutL" << layerNumber << "_" << lutNumber << ");" << endl;
+    
+    LogicSet lSet;
+    for (int i=0; i<targetGPC.x; i++)
+    {
+        DOT tmp_dot;
+        tmp_dot.rank = selectedRank + i;
+        tmp_dot.name = "gpcOutL" + patch::to_string(layerNumber) + "_" + patch::to_string(lutNumber) + "[" + patch::to_string(i) + "]";
+        
+        lSet.dots.push_back(tmp_dot);
+    }
+    genLayer.lSets.push_back(lSet);
+    
+}
+
+bool testPattern(vector<int> &rankList, GPC targetGPC, int targetRank)
+{
+    if (rankList[targetRank]>=targetGPC.c)
+    {
+        if (targetGPC.b > 0)
+        {
+            if (rankList.size() > targetRank + 1)
+            {
+                if (rankList[targetRank+1]>=targetGPC.b)
+                {
+                    if (targetGPC.a > 0)
+                    {
+                        if (rankList.size() > targetRank + 2)
+                        {
+                            if (rankList[targetRank+2]>=targetGPC.a)
+                            {
+                                return true;
+                            }
+                        }
+                    } else
+                        return true;
+                }
+            }
+        } else
+            return true;
+    }
+    return false;
+}
+
+int findTallestColumn(vector<int> colList)
 {
     int tallest = colList[0];
     int tallestIndex = 0;
@@ -245,22 +436,22 @@ int findTallestColumn(vector<int> &colList)
 void printLayers(vector<LAYER> &layerList)
 {
     cout << endl;
-    
+    int lcount = 0;
     for (vector<LAYER>::iterator it=layerList.begin();it!=layerList.end(); ++it)
     {
-        cout << "LAYER - " << endl;
+        cout << "LAYER - " << lcount++ << endl;
         for (vector<LogicSet>::iterator ls=(*it).lSets.begin();ls!=(*it).lSets.end(); ++ls)
         {
             for (vector<DOT>::iterator dot=(*ls).dots.begin();dot!=(*ls).dots.end(); ++dot)
-                cout << (*dot).rank << " ";
-            cout << endl;
+                cout << (*dot).name << " ";
+            cout << " - rank : " << (*ls).dots[0].rank << endl;
         }
      }   
     cout << endl;
 }
 
 // Prints layer
-void printList(vector<int> &prList)
+void printList(vector<int> prList)
 {
     cout << endl;
     
