@@ -45,6 +45,14 @@ struct GPC // Generalized Parallel Counter
             
             return *this;
         }
+    bool operator==(GPC u)
+        {
+            if ((this->a == u.a) &&
+                (this->b == u.b) && 
+                (this->c == u.c))
+                return true;
+            return false;
+        }
 };
 
 
@@ -77,7 +85,7 @@ const int multB = 12;
 
 const int M = 6;
 const int N = 4;
-const int k = 3;
+const int k = 2;
 
 
 void printList(vector<int> prList);
@@ -86,6 +94,7 @@ int findTallestColumn(vector<int> colList);
 LAYER compressLayer(LAYER input, int layerNumber);
 vector<GPC> generateCoveringGPCs(int M, int N);
 vector<GPC> generatePrimitiveGPCs(vector<GPC> &covGPCs);
+vector<GPC> generateGPCs(int M, int N);
 void printGPCs(vector<GPC> &gpcList);
 void sortGPCs(vector<GPC> &listGPC);
 void printLayers(vector<LAYER> &layerList);
@@ -99,34 +108,17 @@ vector<LAYER> layers;
 
 int main( int argc, char *argv[] )
 {
-    // *** GPC creation
-    vector<GPC> covGPCs = generateCoveringGPCs(M, N);
-    
-    cout << "Covering GPC List : " << endl;
-    printGPCs(covGPCs);
-    
-    vector<GPC> primGPCs = generatePrimitiveGPCs(covGPCs);
-    
-    cout << "Primitive GPC List : " << endl;
-    printGPCs(primGPCs);
-    
-    gpcList=primGPCs;
-    // ***
-    
+    // Create GPC tabel
+    gpcList = generateGPCs(M, N);
+    printGPCs(gpcList);
     
     // Generate partial products as Layer0
     LAYER partialProducts = generatePartialProducts(multA,multB);
     layers.push_back(partialProducts);
     
-    // printLayers(layers);
-        
-    // printList(partialProducts);
-    
-    // generateLayer(partialProducts);
-    
-    // vector<int> rankList = generateRankList(layers.back());
     int layerNumber = 1;
-    while(findTallestColumn(generateRankList(layers.back()))>2)
+    // Generate layers
+    while(findTallestColumn(generateRankList(layers.back()))>k)
     {
         LAYER res = compressLayer(layers.back(), layerNumber++);
         layers.push_back(res);
@@ -135,6 +127,29 @@ int main( int argc, char *argv[] )
     
     printList(generateRankList(layers.back()));
     
+}
+
+vector<GPC> generateGPCs(int M, int N)
+{
+    vector<GPC> covGPCs = generateCoveringGPCs(M, N);
+    
+    cout << "Covering GPC List : " << endl;
+    printGPCs(covGPCs);
+    
+    vector<GPC> primGPCs = generatePrimitiveGPCs(covGPCs);
+    
+    cout << "Primitive GPC List : " << endl;
+    
+    
+    // Eliminate repeats
+    for (int i=0;i<primGPCs.size()-1;i++)
+    {
+        for (int j=i+1;j<primGPCs.size();j++)
+            if (primGPCs[i] == primGPCs[j])
+                primGPCs.erase(primGPCs.begin() + j);
+    }
+    
+    return primGPCs;
 }
 
 vector<GPC> generateCoveringGPCs(int M, int N)
@@ -373,7 +388,7 @@ void generateLUT(LAYER &input, vector<int> &rankList, GPC targetGPC, int selecte
             }
         }
     }
-    cout << "},gpcOutL" << layerNumber << "_" << lutNumber << ");" << endl;
+    cout << "},gpcOutL" << patch::to_string(layerNumber) << "_" << patch::to_string(lutNumber) << ");" << endl;
     
     LogicSet lSet;
     for (int i=0; i<targetGPC.x; i++)
