@@ -201,11 +201,16 @@ int main( int argc, char *argv[] )
     
     file_out << "endmodule" << endl;
     
-    cout << file_out.str();
+    string fname;
+    fname = "mult_" + patch::to_string(multA) + "x" + patch::to_string(multB) + "_lut6.v";
+    ofstream myfile;
+    myfile.open (fname.c_str());
+    myfile << file_out.str();
+    myfile.close();
     
-    printLayers(layers);
+    // printLayers(layers);
     
-    printList(generateRankList(layers.back()));
+    // printList(generateRankList(layers.back()));
 }
 
 vector<GPC> generateGPCs(int M, int N)
@@ -224,19 +229,11 @@ vector<GPC> generateGPCs(int M, int N)
     {
         for (int j=i+1;j<primGPCs.size();j++)
         {
-            if (i==4)
-            {
-                cout << "Elimita test - 4" << endl;
-                cout << "prim(i) " << primGPCs[i].a << " " << primGPCs[i].b << " " << primGPCs[i].c << endl;
-                cout << "prim(i) " << primGPCs[j].a << " " << primGPCs[j].b << " " << primGPCs[j].c << endl;
-                
-            }
             if ((primGPCs[i].a == primGPCs[j].a) && 
                 (primGPCs[i].b == primGPCs[j].b) && 
                 (primGPCs[i].c == primGPCs[j].c))
                 {
                     primGPCs.erase(primGPCs.begin() + j);
-                    cout << "removed : " << j << endl;
                     i = 0;
                     j = 1;
                     break;
@@ -325,8 +322,10 @@ vector<GPC> generateGPCs(int M, int N)
         }
         gpc_modules << "endmodule" << endl << endl;
     }
-    
-    cout << gpc_modules.str() << endl;
+    ofstream myfile;
+    myfile.open ("gpc_modules.v");
+    myfile << gpc_modules.str();
+    myfile.close();
     
     return primGPCs;
 }
