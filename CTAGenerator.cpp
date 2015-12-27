@@ -91,9 +91,9 @@ const int k = 2;
 
 
 void printList(vector<int> prList);
-LAYER generatePartialProducts(int,int);
+LAYER generatePartialProducts(int,int,ostringstream &file_out);
 int findTallestColumn(vector<int> colList);
-LAYER compressLayer(LAYER input, int layerNumber);
+LAYER compressLayer(LAYER input, int layerNumber, ostringstream &file_out);
 vector<GPC> generateCoveringGPCs(int M, int N);
 vector<GPC> generatePrimitiveGPCs(vector<GPC> &covGPCs);
 vector<GPC> generateGPCs(int M, int N);
@@ -101,7 +101,7 @@ void printGPCs(vector<GPC> &gpcList);
 void sortGPCs(vector<GPC> &listGPC);
 void printLayers(vector<LAYER> &layerList);
 bool testPattern(vector<int> &rankList, GPC targetGPC, int targetRank);
-void generateLUT(LAYER &input, vector<int> &rankList, GPC targetGPC, int selectedRank, LAYER &genLayer, int layerNumber, int lutNumber);
+void generateLUT(LAYER &input, vector<int> &rankList, GPC targetGPC, int selectedRank, LAYER &genLayer, int layerNumber, int lutNumber, ostringstream &file_out);
 void connectDotsDirectly(LAYER &input, vector<int> &rankList, int selectedRank, LAYER &genLayer);
 vector<int> generateRankList(LAYER input);
 uint64_t generateLUTOutput(int a, int b, int c, int q);
@@ -111,25 +111,101 @@ vector<LAYER> layers;
 
 int main( int argc, char *argv[] )
 {
+    ostringstream file_out;
+    file_out << "(* RLOC_ORIGIN = \"X0Y0\" *)" << endl;
+    file_out << "module mult_" << patch::to_string(multA) << "x" << patch::to_string(multB) << "_lut6(in0, in1, out);" << endl << endl;
+    file_out << "input [" << patch::to_string(multA - 1) << ":0] in0;" << endl;
+    file_out << "input [" << patch::to_string(multA - 1) << ":0] in1;" << endl;
+    file_out << "output [" << patch::to_string(multB * 2) << ":0] out;" << endl << endl;
+    
     // Create GPC tabel
     gpcList = generateGPCs(M, N);
     printGPCs(gpcList);
     
     // Generate partial products as Layer0
-    LAYER partialProducts = generatePartialProducts(multA,multB);
+    LAYER partialProducts = generatePartialProducts(multA,multB,file_out);
     layers.push_back(partialProducts);
     
     int layerNumber = 1;
     // Generate layers
     while(findTallestColumn(generateRankList(layers.back()))>k)
     {
-        LAYER res = compressLayer(layers.back(), layerNumber++);
+        LAYER res = compressLayer(layers.back(), layerNumber++, file_out);
         layers.push_back(res);
     }
+    LAYER sumLayer = layers.back();
+    vector<int> rankList = generateRankList(sumLayer);
+    // printLayers(layers);
+    
+    // printList(generateRankList(layers.back()));
+    
+    // Generate final adder
+    file_out << "wire [" << patch::to_string(rankList.size()-1) << ":0] adderIn0;" << endl;
+    file_out << "wire [" << patch::to_string(rankList.size()-1) << ":0] adderIn1;" << endl;
+    file_out << "wire [" << patch::to_string(rankList.size()) << ":0] adderOut;" << endl << endl;
+    
+    string sep = "";
+    string sep1 = "";
+    bool adder0Added = false;
+    bool closeLoop = false;
+    ostringstream adder0;
+    ostringstream adder1;
+    for (int i = rankList.size()-1; i>=0; i--)
+    {
+        for (int j = 0; j<sumLayer.lSets.size(); j++)
+        {
+            for ( int u = 0; u<sumLayer.lSets[j].dots.size(); u++)
+            {
+                if (sumLayer.lSets[j].dots[u].rank == i)
+                {
+                    if (adder0Added == false)
+                    {
+                        adder0 << sep << sumLayer.lSets[j].dots[u].name;
+                        sep = ",";
+                        if (rankList[i] > 1)
+                        {
+                            adder0Added = true;
+                            break;
+                        }
+                        else
+                        {
+                            adder1 << sep1 << "1'b0";
+                            sep1 = ",";
+                            closeLoop = true;
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        adder1 << sep1 << sumLayer.lSets[j].dots[u].name;
+                        sep1 = ",";
+                        closeLoop = true;
+                        break;
+                    }
+                }
+                    
+            }
+            if (closeLoop)
+            {
+                closeLoop = false;
+                break;
+            }
+        }
+        adder0Added = false;
+    }
+    file_out << "assign adderIn0 = {" << adder0.str() << "};" << endl;
+    file_out << "assign adderIn1 = {" << adder1.str() << "};" << endl;
+        
+    file_out << "assign adderOut = adderIn0 + adderIn1;" << endl;
+    file_out << "assign out = adderOut;" << endl << endl;
+    
+    file_out << "endmodule" << endl;
+    
+    cout << file_out.str();
+    
     printLayers(layers);
     
     printList(generateRankList(layers.back()));
-    
 }
 
 vector<GPC> generateGPCs(int M, int N)
@@ -143,20 +219,39 @@ vector<GPC> generateGPCs(int M, int N)
     
     cout << "Primitive GPC List : " << endl;
     
-    
     // Eliminate repeats
     for (int i=0;i<primGPCs.size()-1;i++)
     {
         for (int j=i+1;j<primGPCs.size();j++)
-            if (primGPCs[i] == primGPCs[j])
-                primGPCs.erase(primGPCs.begin() + j);
+        {
+            if (i==4)
+            {
+                cout << "Elimita test - 4" << endl;
+                cout << "prim(i) " << primGPCs[i].a << " " << primGPCs[i].b << " " << primGPCs[i].c << endl;
+                cout << "prim(i) " << primGPCs[j].a << " " << primGPCs[j].b << " " << primGPCs[j].c << endl;
+                
+            }
+            if ((primGPCs[i].a == primGPCs[j].a) && 
+                (primGPCs[i].b == primGPCs[j].b) && 
+                (primGPCs[i].c == primGPCs[j].c))
+                {
+                    primGPCs.erase(primGPCs.begin() + j);
+                    cout << "removed : " << j << endl;
+                    i = 0;
+                    j = 1;
+                    break;
+                }
+            }
+            
     }
     
     std::ostringstream gpc_modules;
-    gpc_modules << "// GPC modules for LUT6 " << endl << endl;
+    gpc_modules << "// GPC modules for LUT6 " << endl;
+    gpc_modules << "// This file is generated by CTAGenerator " << endl << endl;
+    
     for (vector<GPC>::iterator it=primGPCs.begin();it!=primGPCs.end(); ++it)
     {
-        gpc_modules << "// GPC(" << (*it).a << "," << (*it).b << "," << (*it).c << "," << (*it).x << ")" << " compression ratio : " << (*it).ratio << endl;
+        gpc_modules << "// GPC(" << (*it).a << "," << (*it).b << "," << (*it).c << ";" << (*it).x << ")" << " compression ratio : " << (*it).ratio << endl;
         gpc_modules << "module gpc" << (*it).a << (*it).b << (*it).c << "(in, out);" << endl << endl;
         gpc_modules << "input [" << patch::to_string((*it).a + (*it).b + (*it).c - 1) << ":0] in;" << endl;
         gpc_modules << "output [" << patch::to_string((*it).x-1) << ":0] out;" << endl << endl;
@@ -166,14 +261,62 @@ vector<GPC> generateGPCs(int M, int N)
             (covGPCs[(*it).coveringGPC].x == (*it).x))
         { // It is covering GPC
             
+            
             for (int i=0; i<(*it).x; i++)
             {
                 gpc_modules << "(* RLOC = \"X0Y0\" *)" << endl;
-                gpc_modules << "LUT6 #(.INIT(64'h" << hex << generateLUTOutput((*it).a, (*it).b, (*it).c, i) << dec << "))" << endl;
-                gpc_modules << "    LUT6_" << i << " (.O(out[" << i << "], .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(in[5]));" << endl << endl;
+                gpc_modules << "LUT6 #(.INIT(64'h" << hex << generateLUTOutput((*it).a, (*it).b, (*it).c, i) << dec << "))";
+                gpc_modules << " LUT6_" << i << "_ (.O(out[" << i << "]), ";
+                string sep = "";
+                for (int j=0; j < ((*it).a + (*it).b + (*it).c); j++)
+                {
+                    gpc_modules << sep << " .I" << patch::to_string(j) << "(in[" << patch::to_string(j) << "])";
+                    sep = ",";
+                }
+                    
+                gpc_modules << ");" << endl << endl;
             }
         } else { // It is generated GPC
-            // gpc_modules << "gpc" << covGPCs[(*it).coveringGPC].a << covGPCs[(*it).coveringGPC].b << covGPCs[(*it).coveringGPC].c << " gpc" << covGPCs[(*it).coveringGPC].a << covGPCs[(*it).coveringGPC].b << covGPCs[(*it).coveringGPC].c << "_inst(.in({" <<  << "}), .out(out));" << endl;
+            if( (*it).x < covGPCs[(*it).coveringGPC].x )
+                gpc_modules << "wire [" << patch::to_string((*it).x - 1) << ":0] temp;" << endl;
+                
+            gpc_modules << "gpc" << covGPCs[(*it).coveringGPC].a << covGPCs[(*it).coveringGPC].b << covGPCs[(*it).coveringGPC].c << " gpc" << covGPCs[(*it).coveringGPC].a << covGPCs[(*it).coveringGPC].b << covGPCs[(*it).coveringGPC].c << "_inst(.in({";
+            
+            int inCount = (*it).a + (*it).b + (*it).c;
+            
+            int zeros = covGPCs[(*it).coveringGPC].a - (*it).a;
+            for (int i=0;i<zeros;i++)
+                gpc_modules << "1'b0,";
+            for (int i=(*it).a;i>0;i--)
+                gpc_modules << "in[" << patch::to_string(--inCount) << "],";
+            
+            zeros = covGPCs[(*it).coveringGPC].b - (*it).b;
+            for (int i=0;i<zeros;i++)
+                gpc_modules << "1'b0,";
+            for (int i=(*it).b;i>0;i--)
+                gpc_modules << "in[" << patch::to_string(--inCount) << "],";
+            
+            string sep = "";
+            zeros = covGPCs[(*it).coveringGPC].c - (*it).c;
+            for (int i=0;i<zeros;i++)
+            {
+                gpc_modules << sep << "1'b0";
+                sep = ",";
+            }
+            for (int i=(*it).c;i>0;i--)
+            {
+                gpc_modules << sep << "in[" << patch::to_string(--inCount) << "]";
+                sep = ",";
+            }
+                
+            gpc_modules << "}), .out(";
+            if ( (*it).x < covGPCs[(*it).coveringGPC].x )
+                gpc_modules << "temp" << "));" << endl;
+            else
+                gpc_modules << "out" << "));" << endl;
+            
+            if( (*it).x < covGPCs[(*it).coveringGPC].x )
+                gpc_modules << "assign out = temp[" << patch::to_string((*it).x - 1) << ":0];" << endl;
         }
         gpc_modules << "endmodule" << endl << endl;
     }
@@ -301,7 +444,7 @@ void sortGPCs(vector<GPC> &listGPC)
 }
 
 // Generates partial products
-LAYER generatePartialProducts(int A, int B)
+LAYER generatePartialProducts(int A, int B, ostringstream &file_out)
 {
     vector<int> pp;
     
@@ -311,6 +454,9 @@ LAYER generatePartialProducts(int A, int B)
     for (int i=0; i<A; i++)
     {
         vector<DOT> dots;
+        
+        file_out << "wire [" << patch::to_string(B-1) << ":0] pp" << patch::to_string(i) << ";" << endl;
+        file_out << "assign pp" << patch::to_string(i) << " = (in1[" << patch::to_string(i) << "]) ? in0 : 1'b0;" << endl;
         
         for (int j=0; j<B; j++)
         {
@@ -344,7 +490,7 @@ vector<int> generateRankList(LAYER input)
         return rankList;
 }
 
-LAYER compressLayer(LAYER input, int layerNumber)
+LAYER compressLayer(LAYER input, int layerNumber, ostringstream &file_out)
 {
     LAYER genLayer;
     vector<int> rankList = generateRankList(input);
@@ -380,7 +526,7 @@ LAYER compressLayer(LAYER input, int layerNumber)
         }
         if (bestGPC < gpcList.size())
         {
-            generateLUT(input, rankList, gpcList[bestGPC], selectedRank, genLayer, layerNumber, lutNumber);
+            generateLUT(input, rankList, gpcList[bestGPC], selectedRank, genLayer, layerNumber, lutNumber, file_out);
             
             lutNumber++;
         }
@@ -414,12 +560,13 @@ void connectDotsDirectly(LAYER &input, vector<int> &rankList, int selectedRank, 
             }
 }
 
-void generateLUT(LAYER &input, vector<int> &rankList, GPC targetGPC, int selectedRank, LAYER &genLayer, int layerNumber, int lutNumber)
+void generateLUT(LAYER &input, vector<int> &rankList, GPC targetGPC, int selectedRank, LAYER &genLayer, int layerNumber, int lutNumber, ostringstream &file_out)
 {
-    /*cout << "(* RLOC = " << "\"X" << layerNumber << "Y" << lutNumber << "\" *)" << endl;
-    cout << "gpc" << targetGPC.a << targetGPC.b << targetGPC.c;
-    cout << " gpcL" << layerNumber << "_" << lutNumber << " ({";*/
-    
+    file_out << "wire [" << patch::to_string(targetGPC.x - 1) << ":0] gpcOutL" << patch::to_string(layerNumber) << "_" << patch::to_string(lutNumber) << ";" << endl << endl;
+    file_out << "(* RLOC = " << "\"X" << patch::to_string(layerNumber) << "Y" << patch::to_string(lutNumber) << "\" *)" << endl;
+    file_out << "gpc" << patch::to_string(targetGPC.a) << patch::to_string(targetGPC.b) << patch::to_string(targetGPC.c);
+    file_out << " gpcL" << patch::to_string(layerNumber) << "_" << patch::to_string(lutNumber) << " ({";
+    string sep = "";
     for (int rankIndex = 2; rankIndex>=0; rankIndex--)
     {
         int numberOfDots2Connect = targetGPC.a;
@@ -430,14 +577,15 @@ void generateLUT(LAYER &input, vector<int> &rankList, GPC targetGPC, int selecte
 
         while(numberOfDots2Connect>0)
         {
+            
             for (int ls=0;ls<input.lSets.size(); ++ls)
             {
                 for (int dot=0; dot<input.lSets[ls].dots.size(); ++dot)
                 {
                     if (input.lSets[ls].dots[dot].rank == selectedRank+rankIndex)
                     {
-                        // cout << input.lSets[ls].dots[dot].name;
-                        // cout << ",";
+                        file_out << sep << input.lSets[ls].dots[dot].name;
+                        sep = ",";
                         input.lSets[ls].dots.erase(input.lSets[ls].dots.begin() + dot);
                         rankList[selectedRank+rankIndex]--;
                         numberOfDots2Connect--;
@@ -451,7 +599,7 @@ void generateLUT(LAYER &input, vector<int> &rankList, GPC targetGPC, int selecte
             }
         }
     }
-    // cout << "},gpcOutL" << patch::to_string(layerNumber) << "_" << patch::to_string(lutNumber) << ");" << endl;
+    file_out << "},gpcOutL" << patch::to_string(layerNumber) << "_" << patch::to_string(lutNumber) << ");" << endl;
     
     LogicSet lSet;
     for (int i=0; i<targetGPC.x; i++)
