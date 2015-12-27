@@ -113,10 +113,10 @@ int main( int argc, char *argv[] )
 {
     ostringstream file_out;
     file_out << "(* RLOC_ORIGIN = \"X0Y0\" *)" << endl;
-    file_out << "module mult_" << patch::to_string(multA) << "x" << patch::to_string(multB) << "_lut6(in0, in1, out);" << endl << endl;
+    file_out << "module mult_" << patch::to_string(multA) << "x" << patch::to_string(multB) << "_lut6(in0, in1, mult_out);" << endl << endl;
     file_out << "input [" << patch::to_string(multA - 1) << ":0] in0;" << endl;
     file_out << "input [" << patch::to_string(multA - 1) << ":0] in1;" << endl;
-    file_out << "output [" << patch::to_string(multB * 2) << ":0] out;" << endl << endl;
+    file_out << "output [" << patch::to_string(multB * 2) << ":0] mult_out;" << endl << endl;
     
     // Create GPC tabel
     gpcList = generateGPCs(M, N);
@@ -197,7 +197,7 @@ int main( int argc, char *argv[] )
     file_out << "assign adderIn1 = {" << adder1.str() << "};" << endl;
         
     file_out << "assign adderOut = adderIn0 + adderIn1;" << endl;
-    file_out << "assign out = adderOut;" << endl << endl;
+    file_out << "assign mult_out = adderOut;" << endl << endl;
     
     file_out << "endmodule" << endl;
     
@@ -273,6 +273,11 @@ vector<GPC> generateGPCs(int M, int N)
                     gpc_modules << sep << " .I" << patch::to_string(j) << "(in[" << patch::to_string(j) << "])";
                     sep = ",";
                 }
+                
+                // Tie unused LUT6 inputs to 0
+                for (int j=5; j>((*it).a + (*it).b + (*it).c)-1; j--)
+                    gpc_modules << sep << " .I" << patch::to_string(j) << "(1'b0)";
+                
                     
                 gpc_modules << ");" << endl << endl;
             }
