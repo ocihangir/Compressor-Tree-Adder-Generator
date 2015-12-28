@@ -4,6 +4,7 @@
 #include <string>
 #include <sstream>
 #include <stdint.h>
+#include <stdlib.h>
 // A patch for to_string issue on g++
 namespace patch
 {
@@ -82,8 +83,8 @@ struct LUT
     int typeGPC;
 };
 
-const int multA = 12;
-const int multB = 12;
+int multA = 12;
+int multB = 12;
 
 const int M = 6;
 const int N = 4;
@@ -111,8 +112,11 @@ vector<LAYER> layers;
 
 int main( int argc, char *argv[] )
 {
+    multA = atoi(argv[1]);
+    multB = atoi(argv[2]);
+    
     ostringstream file_out;
-    file_out << "(* RLOC_ORIGIN = \"X0Y0\" *)" << endl;
+    file_out << "// (* RLOC_ORIGIN = \"X0Y0\" *)" << endl;
     file_out << "module mult_" << patch::to_string(multA) << "x" << patch::to_string(multB) << "_lut6(in0, in1, mult_out);" << endl << endl;
     file_out << "input [" << patch::to_string(multA - 1) << ":0] in0;" << endl;
     file_out << "input [" << patch::to_string(multA - 1) << ":0] in1;" << endl;
@@ -224,14 +228,11 @@ vector<GPC> generateGPCs(int M, int N)
     
     cout << "Primitive GPC List : " << endl;
     
-    // Eliminate repeats
+    // Eliminate repeats in GPC list
     for (int i=0;i<primGPCs.size()-1;i++)
-    {
         for (int j=i+1;j<primGPCs.size();j++)
         {
-            if ((primGPCs[i].a == primGPCs[j].a) && 
-                (primGPCs[i].b == primGPCs[j].b) && 
-                (primGPCs[i].c == primGPCs[j].c))
+            if (primGPCs[i] == primGPCs[j])
                 {
                     primGPCs.erase(primGPCs.begin() + j);
                     i = 0;
@@ -239,8 +240,6 @@ vector<GPC> generateGPCs(int M, int N)
                     break;
                 }
             }
-            
-    }
     
     std::ostringstream gpc_modules;
     gpc_modules << "// GPC modules for LUT6 " << endl;
@@ -261,7 +260,7 @@ vector<GPC> generateGPCs(int M, int N)
             
             for (int i=0; i<(*it).x; i++)
             {
-                gpc_modules << "(* RLOC = \"X0Y0\" *)" << endl;
+                gpc_modules << "// (* RLOC = \"X0Y0\" *)" << endl;
                 gpc_modules << "LUT6 #(.INIT(64'h" << hex << generateLUTOutput((*it).a, (*it).b, (*it).c, i) << dec << "))";
                 gpc_modules << " LUT6_" << i << "_ (.O(out[" << i << "]), ";
                 string sep = "";
@@ -567,7 +566,7 @@ void connectDotsDirectly(LAYER &input, vector<int> &rankList, int selectedRank, 
 void generateLUT(LAYER &input, vector<int> &rankList, GPC targetGPC, int selectedRank, LAYER &genLayer, int layerNumber, int lutNumber, ostringstream &file_out)
 {
     file_out << "wire [" << patch::to_string(targetGPC.x - 1) << ":0] gpcOutL" << patch::to_string(layerNumber) << "_" << patch::to_string(lutNumber) << ";" << endl << endl;
-    file_out << "(* RLOC = " << "\"X" << patch::to_string(layerNumber) << "Y" << patch::to_string(lutNumber) << "\" *)" << endl;
+    file_out << "// (* RLOC = " << "\"X" << patch::to_string(layerNumber) << "Y" << patch::to_string(lutNumber) << "\" *)" << endl;
     file_out << "gpc" << patch::to_string(targetGPC.a) << patch::to_string(targetGPC.b) << patch::to_string(targetGPC.c);
     file_out << " gpcL" << patch::to_string(layerNumber) << "_" << patch::to_string(lutNumber) << " ({";
     string sep = "";
