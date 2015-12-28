@@ -112,8 +112,17 @@ vector<LAYER> layers;
 
 int main( int argc, char *argv[] )
 {
-    multA = atoi(argv[1]);
-    multB = atoi(argv[2]);
+    if (argc > 1)
+    {
+        multA = atoi(argv[1]);
+        multB = atoi(argv[2]);
+    }
+    
+    string fname;
+    fname = "mult_" + patch::to_string(multA) + "x" + patch::to_string(multB) + "_lut6.v";
+    
+    cout << "Generating " << patch::to_string(multA) << "x" << patch::to_string(multB) << "multiplier unit." << endl;
+    cout << "File name : " << fname << endl << endl;
     
     ostringstream file_out;
     file_out << "// (* RLOC_ORIGIN = \"X0Y0\" *)" << endl;
@@ -205,12 +214,13 @@ int main( int argc, char *argv[] )
     
     file_out << "endmodule" << endl;
     
-    string fname;
-    fname = "mult_" + patch::to_string(multA) + "x" + patch::to_string(multB) + "_lut6.v";
+    
     ofstream myfile;
     myfile.open (fname.c_str());
     myfile << file_out.str();
     myfile.close();
+    
+    cout << "DONE!" << endl;
     
     // printLayers(layers);
     
@@ -219,6 +229,10 @@ int main( int argc, char *argv[] )
 
 vector<GPC> generateGPCs(int M, int N)
 {
+    
+    cout << "Creating GPC tables..." << endl;
+    cout << "GPC table file name : gpc_modules.v" << endl << endl;
+    
     vector<GPC> covGPCs = generateCoveringGPCs(M, N);
     
     cout << "Covering GPC List : " << endl;
