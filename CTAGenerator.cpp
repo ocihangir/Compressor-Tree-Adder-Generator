@@ -222,9 +222,9 @@ int main( int argc, char *argv[] )
     
     cout << "DONE!" << endl;
     
-    // printLayers(layers);
+    printLayers(layers);
     
-    // printList(generateRankList(layers.back()));
+    printList(generateRankList(layers.back()));
 }
 
 vector<GPC> generateGPCs(int M, int N)
@@ -386,16 +386,19 @@ vector<GPC> generateCoveringGPCs(int M, int N)
     resGPCs.push_back(GPC(0,0,6,3,0));
     resGPCs.push_back(GPC(0,1,5,3,1));
     resGPCs.push_back(GPC(0,2,3,3,2));
+    resGPCs.push_back(GPC(0,1,2,3,3));
+    resGPCs.push_back(GPC(0,0,3,2,4));
     if (N>3)
     {
-        resGPCs.push_back(GPC(0,2,4,4,3));
-        resGPCs.push_back(GPC(1,1,4,4,4));
-        resGPCs.push_back(GPC(0,3,3,4,5));
-        resGPCs.push_back(GPC(1,2,3,4,6));
-        resGPCs.push_back(GPC(2,1,3,4,7));
-        resGPCs.push_back(GPC(0,4,2,4,8));
-        resGPCs.push_back(GPC(1,3,2,4,9));
-        resGPCs.push_back(GPC(2,2,2,4,10));
+        resGPCs.push_back(GPC(0,2,4,4,5));
+        resGPCs.push_back(GPC(1,1,4,4,6));
+        resGPCs.push_back(GPC(0,3,3,4,7));
+        resGPCs.push_back(GPC(1,2,3,4,8));
+        resGPCs.push_back(GPC(2,1,3,4,9));
+        resGPCs.push_back(GPC(0,4,2,4,10));
+        resGPCs.push_back(GPC(1,3,2,4,11));
+        resGPCs.push_back(GPC(2,2,2,4,12));
+        resGPCs.push_back(GPC(1,1,2,4,13));
         // resGPCs.push_back(GPC(0,3,1,3,11));
     }
     
