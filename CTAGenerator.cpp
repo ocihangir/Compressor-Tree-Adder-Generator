@@ -108,6 +108,7 @@ void connectDotsDirectly(LAYER &input, vector<int> &rankList, int selectedRank, 
 vector<int> generateRankList(LAYER input);
 uint64_t generateLUTOutput(int a, int b, int c, int q);
 int findTallestColumnSize(vector<int> colList);
+void generateFinalAdder(LAYER sumLayer, int k, ostringstream &file_out);
 
 vector<GPC> gpcList;
 vector<LAYER> layers;
@@ -143,27 +144,38 @@ int main( int argc, char *argv[] )
     
     int layerNumber = 1;
     // Generate layers
-    cout << "GENERATED LAYERS' ORDER" << endl;
-    cout << "Partial products : " << findTallestColumn(generateRankList(layers.back())) << endl;
     while(findTallestColumnSize(generateRankList(layers.back()))>k)
     {
         LAYER res = compressLayer(layers.back(), layerNumber++, file_out);
         layers.push_back(res);
-        cout << "Layer - " << layerNumber << " order : " << findTallestColumnSize(generateRankList(layers.back())) << endl;
     }
-    LAYER sumLayer = layers.back();
-    vector<int> rankList = generateRankList(sumLayer);
+    
+    generateFinalAdder(layers.back(), k, file_out);
+    
+    file_out << "endmodule" << endl;
+    
+    
+    ofstream myfile;
+    myfile.open (fname.c_str());
+    myfile << file_out.str();
+    myfile.close();
+    
+    cout << "DONE!" << endl;
+    
     // printLayers(layers);
     
     // printList(generateRankList(layers.back()));
+}
+
+void generateFinalAdder(LAYER sumLayer, int k, ostringstream &file_out)
+{
+    vector<int> rankList = generateRankList(sumLayer);
     
     // Generate final adder
     for (int i=0; i<k; i++)
         file_out << "wire [" << patch::to_string(rankList.size()-1) << ":0] adderIn" << patch::to_string(i) << ";" << endl;
         
     file_out << "wire [" << patch::to_string(rankList.size()) << ":0] adderOut;" << endl << endl;
-    
-    
     
     string sep[k] = "";
     
@@ -199,22 +211,7 @@ int main( int argc, char *argv[] )
         file_out << "+ adderIn" << i;
     file_out << ";" << endl;
     file_out << "assign mult_out = adderOut;" << endl << endl;
-    
-    file_out << "endmodule" << endl;
-    
-    
-    ofstream myfile;
-    myfile.open (fname.c_str());
-    myfile << file_out.str();
-    myfile.close();
-    
-    cout << "DONE!" << endl;
-    
-    printLayers(layers);
-    
-    printList(generateRankList(layers.back()));
 }
-
 
 vector<GPC> generateGPCs(int M, int N)
 {
@@ -238,7 +235,7 @@ vector<GPC> generateGPCs(int M, int N)
             if (primGPCs[i] == primGPCs[j])
                 {
                     primGPCs.erase(primGPCs.begin() + j);
-                    cout << "Removed repeating gpc (" << patch::to_string(primGPCs[j].a) << "," << patch::to_string(primGPCs[j].b) << "," << patch::to_string(primGPCs[j].c) << ";" << patch::to_string(primGPCs[j].x) << ") - " << patch::to_string(primGPCs[j].coveringGPC) << endl;
+                    // cout << "Removed repeating gpc (" << patch::to_string(primGPCs[j].a) << "," << patch::to_string(primGPCs[j].b) << "," << patch::to_string(primGPCs[j].c) << ";" << patch::to_string(primGPCs[j].x) << ") - " << patch::to_string(primGPCs[j].coveringGPC) << endl;
                     i = 0;
                     j = 1;
                     break;
