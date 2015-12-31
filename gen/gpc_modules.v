@@ -7,13 +7,13 @@ module gpc006(in, out);
 input [5:0] in;
 output [2:0] out;
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'h6996966996696996)) LUT6_0_ (.O(out[0]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(in[5]));
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'h8117177e177e7ee8)) LUT6_1_ (.O(out[1]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(in[5]));
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'hfee8e880e8808000)) LUT6_2_ (.O(out[2]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(in[5]));
 
 endmodule
@@ -24,13 +24,13 @@ module gpc015(in, out);
 input [5:0] in;
 output [2:0] out;
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'h9669699696696996)) LUT6_0_ (.O(out[0]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(in[5]));
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'he8818117177e7ee8)) LUT6_1_ (.O(out[1]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(in[5]));
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'hfffefee8e8808000)) LUT6_2_ (.O(out[2]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(in[5]));
 
 endmodule
@@ -59,13 +59,13 @@ module gpc023(in, out);
 input [4:0] in;
 output [2:0] out;
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'h9696969696969696)) LUT6_0_ (.O(out[0]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(1'b0));
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'he81717e8e81717e8)) LUT6_1_ (.O(out[1]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(1'b0));
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'hffe8e800ffe8e800)) LUT6_2_ (.O(out[2]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(1'b0));
 
 endmodule
@@ -76,16 +76,16 @@ module gpc024(in, out);
 input [5:0] in;
 output [3:0] out;
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'h6996699669966996)) LUT6_0_ (.O(out[0]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(in[5]));
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'h7ee8811781177ee8)) LUT6_1_ (.O(out[1]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(in[5]));
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'h7ffffee8fee88000)) LUT6_2_ (.O(out[2]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(in[5]));
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'h8000000000000000)) LUT6_3_ (.O(out[3]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(in[5]));
 
 endmodule
@@ -96,16 +96,16 @@ module gpc114(in, out);
 input [5:0] in;
 output [3:0] out;
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'h6996699669966996)) LUT6_0_ (.O(out[0]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(in[5]));
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'h81177ee881177ee8)) LUT6_1_ (.O(out[1]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(in[5]));
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'h1177ffffee88000)) LUT6_2_ (.O(out[2]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(in[5]));
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'hfee8800000000000)) LUT6_3_ (.O(out[3]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(in[5]));
 
 endmodule
@@ -116,16 +116,16 @@ module gpc033(in, out);
 input [5:0] in;
 output [3:0] out;
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'h9696969696969696)) LUT6_0_ (.O(out[0]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(in[5]));
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'h17e8e817e81717e8)) LUT6_1_ (.O(out[1]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(in[5]));
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'h17ffffe8ffe8e800)) LUT6_2_ (.O(out[2]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(in[5]));
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'he800000000000000)) LUT6_3_ (.O(out[3]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(in[5]));
 
 endmodule
@@ -136,16 +136,16 @@ module gpc123(in, out);
 input [5:0] in;
 output [3:0] out;
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'h9696969696969696)) LUT6_0_ (.O(out[0]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(in[5]));
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'he81717e8e81717e8)) LUT6_1_ (.O(out[1]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(in[5]));
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'h1717ffffe8e800)) LUT6_2_ (.O(out[2]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(in[5]));
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'hffe8e80000000000)) LUT6_3_ (.O(out[3]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(in[5]));
 
 endmodule
@@ -156,16 +156,16 @@ module gpc213(in, out);
 input [5:0] in;
 output [3:0] out;
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'h9696969696969696)) LUT6_0_ (.O(out[0]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(in[5]));
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'h17e817e817e817e8)) LUT6_1_ (.O(out[1]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(in[5]));
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'he80017ff17ffe800)) LUT6_2_ (.O(out[2]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(in[5]));
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'hffffe800e8000000)) LUT6_3_ (.O(out[3]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(in[5]));
 
 endmodule
@@ -176,16 +176,16 @@ module gpc042(in, out);
 input [5:0] in;
 output [3:0] out;
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'h6666666666666666)) LUT6_0_ (.O(out[0]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(in[5]));
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'h8778788778878778)) LUT6_1_ (.O(out[1]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(in[5]));
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'h77f7ff87ff8f880)) LUT6_2_ (.O(out[2]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(in[5]));
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'hf880800080000000)) LUT6_3_ (.O(out[3]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(in[5]));
 
 endmodule
@@ -196,16 +196,16 @@ module gpc132(in, out);
 input [5:0] in;
 output [3:0] out;
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'h6666666666666666)) LUT6_0_ (.O(out[0]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(in[5]));
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'h7887877878878778)) LUT6_1_ (.O(out[1]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(in[5]));
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'h8007077f7ff8f880)) LUT6_2_ (.O(out[2]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(in[5]));
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'hfff8f88080000000)) LUT6_3_ (.O(out[3]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(in[5]));
 
 endmodule
@@ -216,18 +216,29 @@ module gpc222(in, out);
 input [5:0] in;
 output [3:0] out;
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'h6666666666666666)) LUT6_0_ (.O(out[0]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(in[5]));
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'h8778877887788778)) LUT6_1_ (.O(out[1]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(in[5]));
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'hf880077f077ff880)) LUT6_2_ (.O(out[2]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(in[5]));
 
-(* RLOC = "X0Y0" *)
+// (* RLOC = "X0Y0" *)
 LUT6 #(.INIT(64'hfffff880f8800000)) LUT6_3_ (.O(out[3]),  .I0(in[0]), .I1(in[1]), .I2(in[2]), .I3(in[3]), .I4(in[4]), .I5(in[5]));
 
+endmodule
+
+// GPC(0,0,3;2) compression ratio : 1.5
+module gpc003(in, out);
+
+input [2:0] in;
+output [1:0] out;
+
+wire [2:0] temp;
+gpc006 gpc006_inst(.in({1'b0,1'b0,1'b0,in[2],in[1],in[0]}), .out(temp));
+assign out = temp[1:0];
 endmodule
 
 // GPC(0,0,4;3) compression ratio : 1.33333

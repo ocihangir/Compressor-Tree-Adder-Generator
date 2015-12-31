@@ -88,7 +88,7 @@ int multB = 12;
 
 const int M = 6;
 const int N = 4;
-const int k = 2;
+const int k = 3;
 
 
 void printList(vector<int> prList);
@@ -100,12 +100,14 @@ vector<GPC> generatePrimitiveGPCs(vector<GPC> &covGPCs);
 vector<GPC> generateGPCs(int M, int N);
 void printGPCs(vector<GPC> &gpcList);
 void sortGPCs(vector<GPC> &listGPC);
+void sortGPCsByCover(vector<GPC> &listGPC);
 void printLayers(vector<LAYER> &layerList);
 bool testPattern(vector<int> &rankList, GPC targetGPC, int targetRank);
 void generateLUT(LAYER &input, vector<int> &rankList, GPC targetGPC, int selectedRank, LAYER &genLayer, int layerNumber, int lutNumber, ostringstream &file_out);
 void connectDotsDirectly(LAYER &input, vector<int> &rankList, int selectedRank, LAYER &genLayer);
 vector<int> generateRankList(LAYER input);
 uint64_t generateLUTOutput(int a, int b, int c, int q);
+int findTallestColumnSize(vector<int> colList);
 
 vector<GPC> gpcList;
 vector<LAYER> layers;
@@ -141,10 +143,13 @@ int main( int argc, char *argv[] )
     
     int layerNumber = 1;
     // Generate layers
-    while(findTallestColumn(generateRankList(layers.back()))>k)
+    cout << "GENERATED LAYERS' ORDER" << endl;
+    cout << "Partial products : " << findTallestColumn(generateRankList(layers.back())) << endl;
+    while(findTallestColumnSize(generateRankList(layers.back()))>k)
     {
         LAYER res = compressLayer(layers.back(), layerNumber++, file_out);
         layers.push_back(res);
+        cout << "Layer - " << layerNumber << " order : " << findTallestColumnSize(generateRankList(layers.back())) << endl;
     }
     LAYER sumLayer = layers.back();
     vector<int> rankList = generateRankList(sumLayer);
@@ -153,63 +158,46 @@ int main( int argc, char *argv[] )
     // printList(generateRankList(layers.back()));
     
     // Generate final adder
-    file_out << "wire [" << patch::to_string(rankList.size()-1) << ":0] adderIn0;" << endl;
-    file_out << "wire [" << patch::to_string(rankList.size()-1) << ":0] adderIn1;" << endl;
+    for (int i=0; i<k; i++)
+        file_out << "wire [" << patch::to_string(rankList.size()-1) << ":0] adderIn" << patch::to_string(i) << ";" << endl;
+        
     file_out << "wire [" << patch::to_string(rankList.size()) << ":0] adderOut;" << endl << endl;
     
-    string sep = "";
-    string sep1 = "";
+    
+    
+    string sep[k] = "";
+    
     bool adder0Added = false;
     bool closeLoop = false;
-    ostringstream adder0;
-    ostringstream adder1;
+    ostringstream adder[k];
     for (int i = rankList.size()-1; i>=0; i--)
     {
+        int addCount = 3;
         for (int j = 0; j<sumLayer.lSets.size(); j++)
         {
             for ( int u = 0; u<sumLayer.lSets[j].dots.size(); u++)
             {
                 if (sumLayer.lSets[j].dots[u].rank == i)
                 {
-                    if (adder0Added == false)
-                    {
-                        adder0 << sep << sumLayer.lSets[j].dots[u].name;
-                        sep = ",";
-                        if (rankList[i] > 1)
-                        {
-                            adder0Added = true;
-                            break;
-                        }
-                        else
-                        {
-                            adder1 << sep1 << "1'b0";
-                            sep1 = ",";
-                            closeLoop = true;
-                            break;
-                        }
-                    }
-                    else
-                    {
-                        adder1 << sep1 << sumLayer.lSets[j].dots[u].name;
-                        sep1 = ",";
-                        closeLoop = true;
-                        break;
-                    }
+                    adder[(addCount--)-1] << sep[addCount-1] << sumLayer.lSets[j].dots[u].name;
+                    sep[addCount] = ",";
                 }
-                    
-            }
-            if (closeLoop)
-            {
-                closeLoop = false;
-                break;
             }
         }
-        adder0Added = false;
+        if (addCount>0)
+            for (int m=addCount;m>0;m--)
+            {
+                adder[(m)-1] << sep[m-1] << "1'b0";
+                sep[m-1] = ",";
+            }
     }
-    file_out << "assign adderIn0 = {" << adder0.str() << "};" << endl;
-    file_out << "assign adderIn1 = {" << adder1.str() << "};" << endl;
-        
-    file_out << "assign adderOut = adderIn0 + adderIn1;" << endl;
+    for (int i=0;i<k;i++)
+        file_out << "assign adderIn" << i << " = {" << adder[i].str() << "};" << endl;
+    
+    file_out << "assign adderOut = adderIn0";
+    for (int i=1;i<k;i++)
+        file_out << "+ adderIn" << i;
+    file_out << ";" << endl;
     file_out << "assign mult_out = adderOut;" << endl << endl;
     
     file_out << "endmodule" << endl;
@@ -226,6 +214,7 @@ int main( int argc, char *argv[] )
     
     printList(generateRankList(layers.back()));
 }
+
 
 vector<GPC> generateGPCs(int M, int N)
 {
@@ -249,6 +238,7 @@ vector<GPC> generateGPCs(int M, int N)
             if (primGPCs[i] == primGPCs[j])
                 {
                     primGPCs.erase(primGPCs.begin() + j);
+                    cout << "Removed repeating gpc (" << patch::to_string(primGPCs[j].a) << "," << patch::to_string(primGPCs[j].b) << "," << patch::to_string(primGPCs[j].c) << ";" << patch::to_string(primGPCs[j].x) << ") - " << patch::to_string(primGPCs[j].coveringGPC) << endl;
                     i = 0;
                     j = 1;
                     break;
@@ -293,7 +283,7 @@ vector<GPC> generateGPCs(int M, int N)
             }
         } else { // It is generated GPC
             if( (*it).x < covGPCs[(*it).coveringGPC].x )
-                gpc_modules << "wire [" << patch::to_string((*it).x - 1) << ":0] temp;" << endl;
+                gpc_modules << "wire [" << patch::to_string(covGPCs[(*it).coveringGPC].x - 1) << ":0] temp;" << endl;
                 
             gpc_modules << "gpc" << covGPCs[(*it).coveringGPC].a << covGPCs[(*it).coveringGPC].b << covGPCs[(*it).coveringGPC].c << " gpc" << covGPCs[(*it).coveringGPC].a << covGPCs[(*it).coveringGPC].b << covGPCs[(*it).coveringGPC].c << "_inst(.in({";
             
@@ -386,19 +376,19 @@ vector<GPC> generateCoveringGPCs(int M, int N)
     resGPCs.push_back(GPC(0,0,6,3,0));
     resGPCs.push_back(GPC(0,1,5,3,1));
     resGPCs.push_back(GPC(0,2,3,3,2));
-    resGPCs.push_back(GPC(0,1,2,3,3));
-    resGPCs.push_back(GPC(0,0,3,2,4));
+    // resGPCs.push_back(GPC(0,1,2,3,3));
+    // resGPCs.push_back(GPC(0,0,3,2,4));
     if (N>3)
     {
-        resGPCs.push_back(GPC(0,2,4,4,5));
-        resGPCs.push_back(GPC(1,1,4,4,6));
-        resGPCs.push_back(GPC(0,3,3,4,7));
-        resGPCs.push_back(GPC(1,2,3,4,8));
-        resGPCs.push_back(GPC(2,1,3,4,9));
-        resGPCs.push_back(GPC(0,4,2,4,10));
-        resGPCs.push_back(GPC(1,3,2,4,11));
-        resGPCs.push_back(GPC(2,2,2,4,12));
-        resGPCs.push_back(GPC(1,1,2,4,13));
+        resGPCs.push_back(GPC(0,2,4,4,3));
+        resGPCs.push_back(GPC(1,1,4,4,4));
+        resGPCs.push_back(GPC(0,3,3,4,5));
+        resGPCs.push_back(GPC(1,2,3,4,6));
+        resGPCs.push_back(GPC(2,1,3,4,7));
+        resGPCs.push_back(GPC(0,4,2,4,8));
+        resGPCs.push_back(GPC(1,3,2,4,9));
+        resGPCs.push_back(GPC(2,2,2,4,10));
+        // resGPCs.push_back(GPC(1,1,2,4,13));
         // resGPCs.push_back(GPC(0,3,1,3,11));
     }
     
@@ -423,7 +413,9 @@ vector<GPC> generatePrimitiveGPCs(vector<GPC> &covGPCs)
                 {
                     int x = 0;
                     int q = 4*a + 2*b + c;
-                    if (q < 8)
+                    if (q < 4)
+                        x = 2;
+                    else if (q < 8)
                         x = 3;
                     else if (q < 16)
                         x = 4;
@@ -439,9 +431,12 @@ vector<GPC> generatePrimitiveGPCs(vector<GPC> &covGPCs)
     
     sortGPCs(primGPCs);
     
+    sortGPCsByCover(primGPCs);
+    
     return primGPCs;
 }
 
+// Sorts GPCs by their compression ratio
 void sortGPCs(vector<GPC> &listGPC)
 {
     bool swapped = false;
@@ -451,6 +446,30 @@ void sortGPCs(vector<GPC> &listGPC)
         for (int i=1;i<listGPC.size();i++)
         {
             if(listGPC[i].ratio>listGPC[i-1].ratio)
+            {
+                GPC tmpGPC = listGPC[i-1];
+                listGPC[i-1] = listGPC[i];
+                listGPC[i] = tmpGPC;
+                swapped = true;
+            }
+        }
+    }
+    while(swapped == true);
+    
+}
+
+// Sorts GPCs by their covering dots
+void sortGPCsByCover(vector<GPC> &listGPC)
+{
+    bool swapped = false;
+    do
+    {
+        swapped = false;
+        for (int i=1;i<listGPC.size();i++)
+        {
+            if(listGPC[i].ratio!=listGPC[i-1].ratio)
+                continue;
+            if((listGPC[i].a+listGPC[i].b+listGPC[i].c)>(listGPC[i-1].a+listGPC[i-1].b+listGPC[i-1].c))
             {
                 GPC tmpGPC = listGPC[i-1];
                 listGPC[i-1] = listGPC[i];
@@ -661,6 +680,22 @@ bool testPattern(vector<int> &rankList, GPC targetGPC, int targetRank)
             return true;
     }
     return false;
+}
+
+int findTallestColumnSize(vector<int> colList)
+{
+    int tallest = colList[0];
+    int tallestIndex = 0;
+    for (int i = 1; i<colList.size(); i++)
+    {
+        if (colList[i] > tallest)
+        {
+            tallestIndex = i;
+            tallest = colList[i];
+        }
+    }
+    
+    return tallest;
 }
 
 int findTallestColumn(vector<int> colList)
