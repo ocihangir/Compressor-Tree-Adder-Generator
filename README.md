@@ -4,4 +4,8 @@ This project is an implementation of an MxN Verilog multiplier module generator.
 
 It is designed to take advantage of 6 input LUTs of modern FPGAs to create high performance multipliers. 
 
-Tha basic usage ./CTAGenerator M N
+Tha basic usage ./CTAGenerator M N k
+where:
+M : multiplier
+N : multiplicand
+k : final adder input size

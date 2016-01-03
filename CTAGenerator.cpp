@@ -88,7 +88,7 @@ int multB = 12;
 
 const int M = 6;
 const int N = 4;
-const int k = 3;
+int k = 3;
 
 
 void printList(vector<int> prList);
@@ -120,6 +120,9 @@ int main( int argc, char *argv[] )
         multA = atoi(argv[1]);
         multB = atoi(argv[2]);
     }
+    
+    if (argc > 3)
+        k = atoi(argv[3]);
     
     string fname;
     fname = "mult_" + patch::to_string(multA) + "x" + patch::to_string(multB) + "_lut6.v";
@@ -184,7 +187,7 @@ void generateFinalAdder(LAYER sumLayer, int k, ostringstream &file_out)
     ostringstream adder[k];
     for (int i = rankList.size()-1; i>=0; i--)
     {
-        int addCount = 3;
+        int addCount = k;
         for (int j = 0; j<sumLayer.lSets.size(); j++)
         {
             for ( int u = 0; u<sumLayer.lSets[j].dots.size(); u++)
@@ -203,12 +206,14 @@ void generateFinalAdder(LAYER sumLayer, int k, ostringstream &file_out)
                 sep[m-1] = ",";
             }
     }
+    
     for (int i=0;i<k;i++)
         file_out << "assign adderIn" << i << " = {" << adder[i].str() << "};" << endl;
     
     file_out << "assign adderOut = adderIn0";
     for (int i=1;i<k;i++)
         file_out << "+ adderIn" << i;
+    
     file_out << ";" << endl;
     file_out << "assign mult_out = adderOut;" << endl << endl;
 }
