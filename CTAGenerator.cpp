@@ -18,6 +18,7 @@ namespace patch
 
 #include <iostream>
 #include <fstream>
+#include "opencv2/opencv.hpp"
 
 using namespace std;
 
@@ -71,6 +72,7 @@ struct LUT
     vector<DOT> inputDots;
     vector<DOT> outputDots;
     int targetGPC;
+    string uniqueName;
 };
 
 struct LogicSet
@@ -93,6 +95,9 @@ const int M = 6;
 const int N = 4;
 int k = 3;
 
+// Open CV
+int squareWidth = 20;
+int squareHeight = 20;
 
 void printList(vector<int> prList);
 LAYER generatePartialProducts(int,int,ostringstream &file_out);
@@ -112,6 +117,8 @@ vector<int> generateRankList(LAYER input);
 uint64_t generateLUTOutput(int a, int b, int c, int q);
 int findTallestColumnSize(vector<int> colList);
 void generateFinalAdder(LAYER sumLayer, int k, ostringstream &file_out);
+
+void drawLayers(cv::Mat &image, vector<LAYER> layers);
 
 vector<GPC> gpcList;
 vector<LAYER> layers;
@@ -172,9 +179,35 @@ int main( int argc, char *argv[] )
     
     cout << "DONE!" << endl;
     
+    cv::Mat image(totalColSize*squareHeight*4,(M+N-1)*squareWidth*4,CV_64F,double(1));
+    drawLayers(image, layers);
+    cv::imshow("Multiplier", image);
+    cv::waitKey(0);
+    
     // printLayers(layers);
     
     // printList(generateRankList(layers.back()));
+}
+
+void drawLayers(cv::Mat &image, vector<LAYER> layers)
+{
+    int prevHeight = 0;
+    //int lyrCnt=1;
+    for (int lyrCnt=0;lyrCnt<layers.size();lyrCnt++)
+    {
+        vector<int> rankList = generateRankList(layers[lyrCnt]);
+        for (int rank = 0; rank<rankList.size(); rank++)
+        {
+            for (int dot = 0; dot<rankList[rank]; dot++)
+            {
+                cv::Point pt =  cv::Point((rank * squareWidth)+(squareWidth/2), (prevHeight*squareHeight) + (dot*squareHeight) + (squareHeight/2));
+                int thickness = -1;
+                int lineType = 8;
+                cv::circle(image,pt,squareHeight/6,cv::Scalar( 0, 0, 255 ),thickness,lineType );
+            }
+        }
+        prevHeight += (findTallestColumnSize(rankList) + 1);
+    }
 }
 
 void generateFinalAdder(LAYER sumLayer, int k, ostringstream &file_out)
@@ -616,6 +649,7 @@ void generateLUT(LAYER &input, vector<int> &rankList, GPC targetGPC, int selecte
     file_out << " gpcL" << patch::to_string(layerNumber) << "_" << patch::to_string(lutNumber) << " ({";
     
     LUT genLUT;
+    genLUT.uniqueName = "gpcL" + patch::to_string(layerNumber) + "_" + patch::to_string(lutNumber);
     string sep = "";
     for (int rankIndex = 2; rankIndex>=0; rankIndex--)
     {
