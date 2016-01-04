@@ -125,7 +125,7 @@ int main( int argc, char *argv[] )
     
     if (argc > 3)
         k = atoi(argv[3]);
-    
+        
     string fname;
     fname = "mult_" + patch::to_string(multA) + "x" + patch::to_string(multB) + "_lut6.v";
     
@@ -164,6 +164,10 @@ int main( int argc, char *argv[] )
     myfile.open (fname.c_str());
     myfile << file_out.str();
     myfile.close();
+    
+    int totalColSize = 0;
+    for(int i=0;i<layers.size();i++)
+        totalColSize+=findTallestColumnSize(generateRankList(layers[i]));
     
     cout << "DONE!" << endl;
     
