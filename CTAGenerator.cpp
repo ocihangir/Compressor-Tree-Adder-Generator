@@ -80,7 +80,8 @@ struct LUT
 {
     vector<DOT> inputDots;
     vector<DOT> outputDots;
-    int typeGPC;
+    int inLayer; // Layer number which the LUT inputs are connected to
+    int targetGPC;
 };
 
 int multA = 12;
@@ -94,7 +95,7 @@ int k = 3;
 void printList(vector<int> prList);
 LAYER generatePartialProducts(int,int,ostringstream &file_out);
 int findTallestColumn(vector<int> colList);
-LAYER compressLayer(LAYER input, int layerNumber, ostringstream &file_out);
+LAYER compressLayer(LAYER input, int layerNumber, ostringstream &file_out, vector<LUT> &luts);
 vector<GPC> generateCoveringGPCs(int M, int N);
 vector<GPC> generatePrimitiveGPCs(vector<GPC> &covGPCs);
 vector<GPC> generateGPCs(int M, int N);
@@ -103,7 +104,7 @@ void sortGPCs(vector<GPC> &listGPC);
 void sortGPCsByCover(vector<GPC> &listGPC);
 void printLayers(vector<LAYER> &layerList);
 bool testPattern(vector<int> &rankList, GPC targetGPC, int targetRank);
-void generateLUT(LAYER &input, vector<int> &rankList, GPC targetGPC, int selectedRank, LAYER &genLayer, int layerNumber, int lutNumber, ostringstream &file_out);
+void generateLUT(LAYER &input, vector<int> &rankList, GPC targetGPC, int selectedRank, LAYER &genLayer, int layerNumber, int lutNumber, ostringstream &file_out, vector<LUT> &luts);
 void connectDotsDirectly(LAYER &input, vector<int> &rankList, int selectedRank, LAYER &genLayer);
 vector<int> generateRankList(LAYER input);
 uint64_t generateLUTOutput(int a, int b, int c, int q);
@@ -112,6 +113,7 @@ void generateFinalAdder(LAYER sumLayer, int k, ostringstream &file_out);
 
 vector<GPC> gpcList;
 vector<LAYER> layers;
+vector<LUT> luts;
 
 int main( int argc, char *argv[] )
 {
@@ -149,7 +151,7 @@ int main( int argc, char *argv[] )
     // Generate layers
     while(findTallestColumnSize(generateRankList(layers.back()))>k)
     {
-        LAYER res = compressLayer(layers.back(), layerNumber++, file_out);
+        LAYER res = compressLayer(layers.back(), layerNumber++, file_out, luts);
         layers.push_back(res);
     }
     
@@ -531,7 +533,7 @@ vector<int> generateRankList(LAYER input)
         return rankList;
 }
 
-LAYER compressLayer(LAYER input, int layerNumber, ostringstream &file_out)
+LAYER compressLayer(LAYER input, int layerNumber, ostringstream &file_out, vector<LUT> &luts)
 {
     LAYER genLayer;
     vector<int> rankList = generateRankList(input);
@@ -567,7 +569,7 @@ LAYER compressLayer(LAYER input, int layerNumber, ostringstream &file_out)
         }
         if (bestGPC < gpcList.size())
         {
-            generateLUT(input, rankList, gpcList[bestGPC], selectedRank, genLayer, layerNumber, lutNumber, file_out);
+            generateLUT(input, rankList, gpcList[bestGPC], selectedRank, genLayer, layerNumber, lutNumber, file_out, luts);
             
             lutNumber++;
         }
@@ -601,12 +603,15 @@ void connectDotsDirectly(LAYER &input, vector<int> &rankList, int selectedRank, 
             }
 }
 
-void generateLUT(LAYER &input, vector<int> &rankList, GPC targetGPC, int selectedRank, LAYER &genLayer, int layerNumber, int lutNumber, ostringstream &file_out)
+void generateLUT(LAYER &input, vector<int> &rankList, GPC targetGPC, int selectedRank, LAYER &genLayer, int layerNumber, int lutNumber, ostringstream &file_out, vector<LUT> &luts)
 {
     file_out << "wire [" << patch::to_string(targetGPC.x - 1) << ":0] gpcOutL" << patch::to_string(layerNumber) << "_" << patch::to_string(lutNumber) << ";" << endl << endl;
     file_out << "// (* RLOC = " << "\"X" << patch::to_string(layerNumber) << "Y" << patch::to_string(lutNumber) << "\" *)" << endl;
     file_out << "gpc" << patch::to_string(targetGPC.a) << patch::to_string(targetGPC.b) << patch::to_string(targetGPC.c);
     file_out << " gpcL" << patch::to_string(layerNumber) << "_" << patch::to_string(lutNumber) << " ({";
+    
+    LUT genLUT;
+    genLUT.inLayer = layerNumber;
     string sep = "";
     for (int rankIndex = 2; rankIndex>=0; rankIndex--)
     {
@@ -627,6 +632,9 @@ void generateLUT(LAYER &input, vector<int> &rankList, GPC targetGPC, int selecte
                     {
                         file_out << sep << input.lSets[ls].dots[dot].name;
                         sep = ",";
+                        
+                        genLUT.inputDots.push_back(input.lSets[ls].dots[dot]);
+                        
                         input.lSets[ls].dots.erase(input.lSets[ls].dots.begin() + dot);
                         rankList[selectedRank+rankIndex]--;
                         numberOfDots2Connect--;
@@ -650,9 +658,10 @@ void generateLUT(LAYER &input, vector<int> &rankList, GPC targetGPC, int selecte
         tmp_dot.name = "gpcOutL" + patch::to_string(layerNumber) + "_" + patch::to_string(lutNumber) + "[" + patch::to_string(i) + "]";
         
         lSet.dots.push_back(tmp_dot);
+        genLUT.outputDots.push_back(tmp_dot);
     }
     genLayer.lSets.push_back(lSet);
-    
+    luts.push_back(genLUT);
 }
 
 bool testPattern(vector<int> &rankList, GPC targetGPC, int targetRank)
