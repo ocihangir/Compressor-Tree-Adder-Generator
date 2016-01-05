@@ -18,6 +18,7 @@ namespace patch
 
 #include <iostream>
 #include <fstream>
+#include <unordered_map>
 #include "opencv2/opencv.hpp"
 
 using namespace std;
@@ -65,6 +66,7 @@ struct DOT
 {
     int rank;
     string name;
+    string inputLutName;
 };
 
 struct LUT
@@ -155,7 +157,7 @@ int main( int argc, char *argv[] )
     LAYER partialProducts = generatePartialProducts(multA,multB,file_out);
     layers.push_back(partialProducts);
     
-    int layerNumber = 1;
+    int layerNumber = 0;
     // Generate layers
     while(findTallestColumnSize(generateRankList(layers.back()))>k)
     {
@@ -175,13 +177,19 @@ int main( int argc, char *argv[] )
     
     int totalColSize = 0;
     for(int i=0;i<layers.size();i++)
-        totalColSize+=findTallestColumnSize(generateRankList(layers[i]));
+        totalColSize+=(findTallestColumnSize(generateRankList(layers[i]))+1);
     
     cout << "DONE!" << endl;
     
-    cv::Mat image(totalColSize*squareHeight*4,(M+N-1)*squareWidth*4,CV_64F,double(1));
+    cv::Mat image(totalColSize*squareHeight,(multA+multB+2)*squareWidth,CV_8UC3,cv::Scalar(255,255,255));
     drawLayers(image, layers);
     cv::imshow("Multiplier", image);
+    
+    string imname;
+    imname = "mult_" + patch::to_string(multA) + "x" + patch::to_string(multB) + "_lut6.jpg";
+    imwrite( imname, image );
+    
+    
     cv::waitKey(0);
     
     // printLayers(layers);
@@ -191,23 +199,54 @@ int main( int argc, char *argv[] )
 
 void drawLayers(cv::Mat &image, vector<LAYER> layers)
 {
+    cv::RNG rng( 0xFFFFFFFF );
+    unordered_map<string, cv::Scalar> color4luts;
+    for (int lyrCnt=0;lyrCnt<layers.size();lyrCnt++)
+        for (int lut = 0; lut<layers[lyrCnt].luts.size(); lut++)
+            color4luts[layers[lyrCnt].luts[lut].uniqueName] = cv::Scalar( rng.uniform(0,255), rng.uniform(0,255), rng.uniform(0,255) );
+                
+    
     int prevHeight = 0;
-    //int lyrCnt=1;
     for (int lyrCnt=0;lyrCnt<layers.size();lyrCnt++)
     {
         vector<int> rankList = generateRankList(layers[lyrCnt]);
-        for (int rank = 0; rank<rankList.size(); rank++)
+        for (int i=0;i<rankList.size();i++)
+            rankList[i] = 0;
+            
+        for (int lset=0; lset<layers[lyrCnt].lSets.size(); lset++)
         {
-            for (int dot = 0; dot<rankList[rank]; dot++)
+            for (int dot=0;dot<layers[lyrCnt].lSets[lset].dots.size();dot++)
             {
-                cv::Point pt =  cv::Point((rank * squareWidth)+(squareWidth/2), (prevHeight*squareHeight) + (dot*squareHeight) + (squareHeight/2));
+                
+                if (lyrCnt+1<layers.size())
+                for (int lut=0;lut<layers[lyrCnt+1].luts.size();lut++)
+                {
+                    for (int lutdot=0;lutdot<layers[lyrCnt+1].luts[lut].inputDots.size();lutdot++)
+                    {
+                        if (layers[lyrCnt].lSets[lset].dots[dot].name == layers[lyrCnt+1].luts[lut].inputDots[lutdot].name)
+                        {
+                            int thickness = -1;
+                            int lineType = 8;
+                            cv::rectangle( image,
+                            cv::Point( (layers[lyrCnt].lSets[lset].dots[dot].rank * squareWidth), (prevHeight*squareHeight) + (rankList[layers[lyrCnt].lSets[lset].dots[dot].rank]*squareHeight) ),
+                            cv::Point( (layers[lyrCnt].lSets[lset].dots[dot].rank * squareWidth) + squareWidth, (prevHeight*squareHeight) + (rankList[layers[lyrCnt].lSets[lset].dots[dot].rank]*squareHeight) + squareHeight),
+                            color4luts[layers[lyrCnt+1].luts[lut].uniqueName],
+                            thickness,
+                            lineType );
+                        }
+                    }
+                }
+                cv::Point pt = cv::Point((layers[lyrCnt].lSets[lset].dots[dot].rank * squareWidth)+(squareWidth/2), (prevHeight*squareHeight) + (rankList[layers[lyrCnt].lSets[lset].dots[dot].rank]*squareHeight) + (squareHeight/2));
                 int thickness = -1;
                 int lineType = 8;
-                cv::circle(image,pt,squareHeight/6,cv::Scalar( 0, 0, 255 ),thickness,lineType );
+                cv::circle(image,pt,squareHeight/6,cv::Scalar(0,0,0),thickness,lineType );
+                rankList[layers[lyrCnt].lSets[lset].dots[dot].rank]++;
             }
         }
         prevHeight += (findTallestColumnSize(rankList) + 1);
     }
+    
+    cv::flip(image,image,1);
 }
 
 void generateFinalAdder(LAYER sumLayer, int k, ostringstream &file_out)
@@ -537,7 +576,7 @@ LAYER generatePartialProducts(int A, int B, ostringstream &file_out)
         vector<DOT> dots;
         
         file_out << "wire [" << patch::to_string(B-1) << ":0] pp" << patch::to_string(i) << ";" << endl;
-        file_out << "assign pp" << patch::to_string(i) << " = (in1[" << patch::to_string(i) << "]) ? in0 : 1'b0;" << endl;
+        file_out << "assign pp" << patch::to_string(i) << " = (in1[" << patch::to_string(i) << "]) ? in0 : " << patch::to_string(B) << "'b0;" << endl;
         
         for (int j=0; j<B; j++)
         {
@@ -672,7 +711,7 @@ void generateLUT(LAYER &input, vector<int> &rankList, GPC targetGPC, int selecte
                         sep = ",";
                         
                         genLUT.inputDots.push_back(input.lSets[ls].dots[dot]);
-                        
+                        layers[layerNumber].lSets[ls].dots[dot].inputLutName = genLUT.uniqueName;
                         input.lSets[ls].dots.erase(input.lSets[ls].dots.begin() + dot);
                         rankList[selectedRank+rankIndex]--;
                         numberOfDots2Connect--;

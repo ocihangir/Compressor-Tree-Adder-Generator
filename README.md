@@ -4,6 +4,8 @@ This project is an implementation of an MxN Verilog multiplier module generator.
 
 It is designed to take advantage of 6 input LUTs of modern FPGAs to create high performance multipliers. 
 
+An OpenCV based visualizer added to the project. It now generates a jpg file to visualize compression by GPCs.
+
 Tha basic usage ./CTAGenerator M N k
 where:
 M : multiplier
