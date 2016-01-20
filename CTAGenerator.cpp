@@ -19,7 +19,7 @@ namespace patch
 #include <iostream>
 #include <fstream>
 #include <unordered_map>
-#include "opencv2/opencv.hpp"
+// #include "opencv2/opencv.hpp"
 
 using namespace std;
 
@@ -120,8 +120,6 @@ uint64_t generateLUTOutput(int a, int b, int c, int q);
 int findTallestColumnSize(vector<int> colList);
 void generateFinalAdder(LAYER sumLayer, int k, ostringstream &file_out);
 
-void drawLayers(cv::Mat &image, vector<LAYER> layers);
-
 vector<GPC> gpcList;
 vector<LAYER> layers;
 
@@ -144,10 +142,10 @@ int main( int argc, char *argv[] )
     
     ostringstream file_out;
     file_out << "// (* RLOC_ORIGIN = \"X0Y0\" *)" << endl;
-    file_out << "module mult_" << patch::to_string(multA) << "x" << patch::to_string(multB) << "_lut6(in0, in1, mult_out);" << endl << endl;
+    file_out << "module mult_" << patch::to_string(multA) << "x" << patch::to_string(multB) << "_lut6(in0, in1, out);" << endl << endl;
     file_out << "input [" << patch::to_string(multA - 1) << ":0] in0;" << endl;
-    file_out << "input [" << patch::to_string(multA - 1) << ":0] in1;" << endl;
-    file_out << "output [" << patch::to_string(multB * 2) << ":0] mult_out;" << endl << endl;
+    file_out << "input [" << patch::to_string(multB - 1) << ":0] in1;" << endl;
+    file_out << "output [" << patch::to_string(multA + (multB - 1)) << ":0] out;" << endl << endl;
     
     // Create GPC tabel
     gpcList = generateGPCs(M, N);
@@ -181,7 +179,7 @@ int main( int argc, char *argv[] )
     
     cout << "DONE!" << endl;
     
-    cv::Mat image(totalColSize*squareHeight,(multA+multB+2)*squareWidth,CV_8UC3,cv::Scalar(255,255,255));
+    /*cv::Mat image(totalColSize*squareHeight,(multA+multB+2)*squareWidth,CV_8UC3,cv::Scalar(255,255,255));
     drawLayers(image, layers);
     cv::imshow("Multiplier", image);
     
@@ -190,66 +188,15 @@ int main( int argc, char *argv[] )
     imwrite( imname, image );
     
     
-    cv::waitKey(0);
+    cv::waitKey(0);*/
     
     // printLayers(layers);
     
     // printList(generateRankList(layers.back()));
 }
 
-void drawLayers(cv::Mat &image, vector<LAYER> layers)
-{
-    cv::RNG rng( 0xFFFFFFFF );
-    unordered_map<string, cv::Scalar> color4luts;
-    for (int lyrCnt=0;lyrCnt<layers.size();lyrCnt++)
-        for (int lut = 0; lut<layers[lyrCnt].luts.size(); lut++)
-            color4luts[layers[lyrCnt].luts[lut].uniqueName] = cv::Scalar( rng.uniform(0,255), rng.uniform(0,255), rng.uniform(0,255) );
-                
-    
-    int prevHeight = 0;
-    for (int lyrCnt=0;lyrCnt<layers.size();lyrCnt++)
-    {
-        vector<int> rankList = generateRankList(layers[lyrCnt]);
-        for (int i=0;i<rankList.size();i++)
-            rankList[i] = 0;
-            
-        for (int lset=0; lset<layers[lyrCnt].lSets.size(); lset++)
-        {
-            for (int dot=0;dot<layers[lyrCnt].lSets[lset].dots.size();dot++)
-            {
-                
-                if (lyrCnt+1<layers.size())
-                for (int lut=0;lut<layers[lyrCnt+1].luts.size();lut++)
-                {
-                    for (int lutdot=0;lutdot<layers[lyrCnt+1].luts[lut].inputDots.size();lutdot++)
-                    {
-                        if (layers[lyrCnt].lSets[lset].dots[dot].name == layers[lyrCnt+1].luts[lut].inputDots[lutdot].name)
-                        {
-                            int thickness = -1;
-                            int lineType = 8;
-                            cv::rectangle( image,
-                            cv::Point( (layers[lyrCnt].lSets[lset].dots[dot].rank * squareWidth), (prevHeight*squareHeight) + (rankList[layers[lyrCnt].lSets[lset].dots[dot].rank]*squareHeight) ),
-                            cv::Point( (layers[lyrCnt].lSets[lset].dots[dot].rank * squareWidth) + squareWidth, (prevHeight*squareHeight) + (rankList[layers[lyrCnt].lSets[lset].dots[dot].rank]*squareHeight) + squareHeight),
-                            color4luts[layers[lyrCnt+1].luts[lut].uniqueName],
-                            thickness,
-                            lineType );
-                        }
-                    }
-                }
-                cv::Point pt = cv::Point((layers[lyrCnt].lSets[lset].dots[dot].rank * squareWidth)+(squareWidth/2), (prevHeight*squareHeight) + (rankList[layers[lyrCnt].lSets[lset].dots[dot].rank]*squareHeight) + (squareHeight/2));
-                int thickness = -1;
-                int lineType = 8;
-                cv::circle(image,pt,squareHeight/6,cv::Scalar(0,0,0),thickness,lineType );
-                rankList[layers[lyrCnt].lSets[lset].dots[dot].rank]++;
-            }
-        }
-        prevHeight += (findTallestColumnSize(rankList) + 1);
-    }
-    
-    cv::flip(image,image,1);
-}
 
-void generateFinalAdder(LAYER sumLayer, int k, ostringstream &file_out)
+void generateFinalAdder(LAYER sumLayer, const int k, ostringstream &file_out)
 {
     vector<int> rankList = generateRankList(sumLayer);
     
@@ -259,11 +206,11 @@ void generateFinalAdder(LAYER sumLayer, int k, ostringstream &file_out)
         
     file_out << "wire [" << patch::to_string(rankList.size()) << ":0] adderOut;" << endl << endl;
     
-    string sep[k] = "";
+    vector<string> sep(k);
     
     bool adder0Added = false;
     bool closeLoop = false;
-    ostringstream adder[k];
+    vector<ostringstream> adder(k);
     for (int i = rankList.size()-1; i>=0; i--)
     {
         int addCount = k;
@@ -294,7 +241,7 @@ void generateFinalAdder(LAYER sumLayer, int k, ostringstream &file_out)
         file_out << "+ adderIn" << i;
     
     file_out << ";" << endl;
-    file_out << "assign mult_out = adderOut;" << endl << endl;
+    file_out << "assign out = adderOut[" << patch::to_string(rankList.size()-1) << ":0];" << endl << endl;
 }
 
 vector<GPC> generateGPCs(int M, int N)
@@ -576,7 +523,7 @@ LAYER generatePartialProducts(int A, int B, ostringstream &file_out)
         vector<DOT> dots;
         
         file_out << "wire [" << patch::to_string(B-1) << ":0] pp" << patch::to_string(i) << ";" << endl;
-        file_out << "assign pp" << patch::to_string(i) << " = (in1[" << patch::to_string(i) << "]) ? in0 : " << patch::to_string(B) << "'b0;" << endl;
+        file_out << "assign pp" << patch::to_string(i) << " = (in0[" << patch::to_string(i) << "]) ? in1 : " << patch::to_string(B) << "'b0;" << endl;
         
         for (int j=0; j<B; j++)
         {
