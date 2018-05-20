@@ -15,15 +15,10 @@ k : final adder input size (e.g. 9)
 Build :
 
 It uses CMake to build. In the top folder :
-
 mkdir build
-
 cd build
-
 cmake ..
-
 cmake build ..
-
 make
 
 ./CTAGenerator 8 8 9
