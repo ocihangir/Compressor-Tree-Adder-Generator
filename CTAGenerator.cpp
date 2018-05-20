@@ -187,7 +187,7 @@ void generateFinalAdder(LAYER sumLayer, int k, ostringstream &file_out)
         
     file_out << "wire [" << patch::to_string(rankList.size()) << ":0] adderOut;" << endl << endl;
     
-    string sep[k] = "";
+    string sep[k] = {""};
     
     bool adder0Added = false;
     bool closeLoop = false;

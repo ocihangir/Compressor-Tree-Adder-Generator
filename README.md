@@ -6,6 +6,28 @@ It is designed to take advantage of 6 input LUTs of modern FPGAs to create high 
 
 Tha basic usage ./CTAGenerator M N k
 where:
-M : multiplier
-N : multiplicand
-k : final adder input size
+M : multiplier (e.g. 8)
+N : multiplicand (e.g. 8)
+k : final adder input size (e.g. 9)
+
+./CTAGenerator 8 8 9
+
+Build :
+
+It uses CMake to build. In the top folder :
+
+mkdir build
+
+cd build
+
+cmake ..
+
+cmake build ..
+
+make
+
+./CTAGenerator 8 8 9
+
+See mult_8x8_lut6.v and gpc_modules.v files.
+
+
